@@ -1060,13 +1060,6 @@ const If = <R extends BlockType, A, B>(res :R, cond :Op<I32>, then_ :Op<N>[], el
 
 // Note: `End` is defined above
 
-// TODO: branching primitives:
-// br:          0x0c, // [relative_depth :varuint32]
-//   // break that targets an outer nested block
-// br_if:       0x0d, // [relative_depth :varuint32]
-//   // conditional break that targets an outer nested block
-// br_table:    0x0e, // [br_table_imm] branch table control flow construct
-
 // Branch to a given label (relative depth) in an enclosing construct.
 // Note:
 // - "branching" to a block correspond to a "break" statement
