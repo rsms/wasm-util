@@ -397,7 +397,7 @@ export interface ImportSection   extends Cell<ImportEntry> { readonly _ImportSec
 export interface FunctionSection extends Cell<VarUint32> { readonly _FunctionSection: undefined }
 export interface TableSection    extends Cell<TableType> { readonly _TableSection: undefined }
 export interface MemorySection   extends Cell<MemoryType> { readonly _MemorySection: undefined }
-export interface GlobalSection   extends Cell<GlobalVariable> { readonly _GlobalSection: undefined }
+export interface GlobalSection   extends Cell<GlobalVariable> {readonly _GlobalSection:undefined}
 export interface ExportSection   extends Cell<ExportEntry> { readonly _ExportSection: undefined }
 export interface StartSection    extends Cell<Void> { readonly _StartSection: undefined }
 export interface ElementSection  extends Cell<ElemSegment> { readonly _ElementSection: undefined }
@@ -878,11 +878,11 @@ const FuncType = function(paramTypes :ValueType[], returnType? :ValueType|null) 
                : [Func, paramLen, ...paramTypes, varuint1_0]) as any as FuncType
 }
 
-const moduleMagic = Uint32(0x6d736100)
+const magic = Uint32(0x6d736100)
 
-const Module = function(version: uint32, sections :Section[]) {
-  return new _module(t.module, [moduleMagic, Uint32(version), ...sections] as Section[]) as any as Module
-}
+const Module = (version: uint32, sections :Section[]) =>
+  new _module(t.module, [magic, Uint32(version), ...sections] as Section[]) as any as Module
+
 
 // interface sectionInfo { id :VarUint7, name :string }
 const sections = [
