@@ -303,8 +303,6 @@ export interface Emitter {
   writeF32(v :float32) :Emitter
   writeF64(v :float64) :Emitter
   writeBytes(v :ArrayLike<uint8>) :Emitter
-  writeAll(objs :Emittable[]) :Emitter
-  write(obj :Emittable) :Emitter
 }
 
 export interface Emittable {
@@ -477,6 +475,7 @@ const ind    = (indent? :string) => (indent ? '\n' + indent : '')
 const style  = (str :string, style :string) => '\x1B[' + style + 'm' + str + '\x1B[0m'
 const reprt  = (t :Symbol) => style(symname(t), '92')
 const reprop = (op :uint8) => style(opnames.get(op), '96')
+const writev = (e :Emitter, objs :Emittable[]) :Emitter => objs.reduce((e, n) => n.emit(e), e)
 
 const sumz = function(n :N[]) {
   let sum = 0
@@ -587,7 +586,7 @@ class prefix_str_atom implements Atom<ArrayLike<uint8>> {
     this.v = v
     this.len = len
   }
-  emit(e :Emitter) { return e.write(this.len).writeBytes(this.v) }
+  emit(e :Emitter) { return this.len.emit(e).writeBytes(this.v) }
   repr(indent? :string) { return '"' + utf8.decode(this.v) + '"' }
 }
 
@@ -609,7 +608,7 @@ class cell<T extends N> implements Cell<T> {
     this.v = v
   }
 
-  emit(e :Emitter) { return e.writeAll(this.v) }
+  emit(e :Emitter) { return writev(e, this.v) }
 
   repr(indent? :string) {
     let s = `${ind(indent)}(${reprt(this.t)}`
@@ -656,7 +655,7 @@ class instr_cell implements N {
     this.v = op
     this.n = n
   }
-  emit(e :Emitter) { return e.writeAll(this.n).writeU8(this.v) }
+  emit(e :Emitter) { return writev(e, this.n).writeU8(this.v) }
   repr(indent? :string) {
     return `${ind(indent)}(${reprop(this.v)}${reprv(indent, this.n)})`
   }
@@ -694,7 +693,7 @@ class instr_imm extends instr_cell {
   constructor(op :uint8, imm :N[]) {
     super(t.instr_imm, op, imm, 1 + sumz(imm))
   }
-  emit(e :Emitter) { return e.writeU8(this.v).writeAll(this.n) }
+  emit(e :Emitter) { return writev(e.writeU8(this.v), this.n) }
   repr(indent? :string) {
     switch (this.v) {
       case op.loop:
@@ -711,7 +710,7 @@ class instr_pre_imm extends instr_cell {
     super(t.instr_pre_imm, op, pre, 1 + sumz(pre) + sumz(imm))
     this.imm = imm
   }
-  emit(e :Emitter) { return e.writeAll(this.n).writeU8(this.v).writeAll(this.imm) }
+  emit(e :Emitter) { return writev(writev(e, this.n).writeU8(this.v), this.imm) }
   repr(indent? :string) {
     let s = ind(indent) + '(' + reprop(this.v)
 
@@ -1602,14 +1601,6 @@ function BufferedEmitter(size :number) {
         this.view.setUint8(this.length++, bytes[i])
       }
       return this
-    },
-
-    writeAll(objs :Emittable[]) :Emitter {
-      return objs.reduce((e, s) => s.emit(e), this)
-    },
-
-    write(obj :Emittable) :Emitter {
-      return obj.emit(this)
     },
 
     repr(writeln :(s:string)=>void, limit? :number, highlightRange? :number[]) {
