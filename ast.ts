@@ -399,7 +399,7 @@ export interface TableSection    extends Cell<TableType> { readonly _TableSectio
 export interface MemorySection   extends Cell<MemoryType> { readonly _MemorySection: undefined }
 export interface GlobalSection   extends Cell<GlobalVariable> { readonly _GlobalSection: undefined }
 export interface ExportSection   extends Cell<ExportEntry> { readonly _ExportSection: undefined }
-export interface StartSection    extends Cell<N> { readonly _StartSection: undefined }
+export interface StartSection    extends Cell<Void> { readonly _StartSection: undefined }
 export interface ElementSection  extends Cell<ElemSegment> { readonly _ElementSection: undefined }
 export interface CodeSection     extends Cell<FunctionBody> { readonly _CodeSection: undefined }
 export interface DataSection     extends Cell<DataSegment> { readonly _DataSection: undefined }
