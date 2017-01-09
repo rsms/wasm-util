@@ -1,0 +1,12 @@
+.DS_Store
+*.min.js
+*.g.js
+*.map
+*.lock
+*.tmp
+out
+out.wasm
+out.wast
+wasm-spec
+node_modules
+_local
