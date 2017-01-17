@@ -35,15 +35,15 @@ The equivalent WebAssembly code looks like this:
 
 ```wasm
 get_local 0    // push parameter #0 on stack.
-i64.const 0    // push contant int64 "0" on stack.
+i64.const 0    // push constant int64 "0" on stack.
 i64.eq         // execute "eq" which pops two operands from stack
                //  and pushes int32 "1" or "0" on stack.
 if i64         // pops one int32 from stack; if its not "0":
-  i64.const 1  //   push contant int64 "0" on stack.
+  i64.const 1  //   push constant int64 "0" on stack.
 else           // else (if operand was "0"):
   get_local 0  //   push parameter #0 on stack. $1
   get_local 0  //   push parameter #0 on stack.
-  i64.const 1  //   push contant int64 "0" on stack.
+  i64.const 1  //   push constant int64 "0" on stack.
   i64.sub      //   execute "sub[tract]" which pops two operands
                //    from stack (parameter #0 and constant int64 "1")
                //    and finally pushes the result int64 on stack.
