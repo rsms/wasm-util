@@ -137,7 +137,7 @@ Which yields the following in the console:
               )))) end) end)))
 ```
 
-A complete version of this "factorial" demo can be found as [a unit test in the wasm-util repository](test/build_factorial_test.ts).
+A complete version of this "factorial" demo can be found at [test/build_factorial_test.ts](test/build_factorial_test.ts).
 
 ## ast
 
