@@ -111,7 +111,7 @@ console.log(strRepr(mod))
 
 Which yields the following in the console:
 
-```wasm
+```lisp
 (module 13
   (section type 6 1
     (func_type (i64) i64))
