@@ -325,12 +325,13 @@ type Writer = (s :string)=>void
 
 First-time setup:
 
-```txt
-$ git clone https://github.com/WebAssembly/spec.git wasm-spec
-$ cd wasm-spec/interpreter
-$ make test && make opt
-$ cd ../..
-$ yarn || npm
+```bash
+git clone https://github.com/WebAssembly/spec.git wasm-spec
+cd wasm-spec/interpreter
+# install ocaml in some way, perhaps with homebrew or aptitude, then
+make test && make opt
+cd ../..
+yarn || npm
 ```
 
 Building JavaScript from TypeScript source:
