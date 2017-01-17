@@ -1,4 +1,4 @@
-# wasm-utils
+# wasm-util
 
 Utilities for working with WebAssembly (aka WASM), to be used with TypeScript and JavaScript.
 This code currently supports version MVP-13 (candidate for v1) of WebAssembly.
