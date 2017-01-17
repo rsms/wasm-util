@@ -3,19 +3,19 @@
 Utilities for working with WebAssembly (aka WASM), to be used with TypeScript and JavaScript.
 This code currently supports version MVP-13 (candidate for v1) of WebAssembly.
 
-> Want to learn more about WebAssembly? Check out ["Introduction to WebAssembly"](https://rsms.me/wasm-intro)
+- Want to learn more about WebAssembly? Check out ["Introduction to WebAssembly"](https://rsms.me/wasm-intro)
+- You can also skip the reading and [jump to "Building and testing"](#building-and-testing)
 
 **Overview:**
 
-- `ast` provides a full TypeScript type system for [the complete WebAssembly specification](https://github.com/WebAssembly/design).
+- [`ast`](src/ast.ts) provides a full TypeScript type system for [the complete WebAssembly specification](https://github.com/WebAssembly/design).
 - `ast.c` provides constructors for all parts of a WebAssembly module.
 - `ast.t` is a table of AST node types and their respective internal symbols.
 - `ast.sect_id` is a table of section names and their respective identifiers as `varunit7` objects.
 - `ast.get` provides helper functions for convenient access and traversal of an AST.
-- `emit` provides helpers for emitting WASM byte code from an AST.
-- `repr.repr` generates a human-readable text representation of an AST.
-- `repr.reprBuffer` generates a human-readable text representation of an ArrayBuffer.
-- `lbtext.printCode` generates [Linear Bytecode text](https://github.com/WebAssembly/design/blob/master/TextFormat.md) from AST instructions
+- [`emit`](src/emit.ts) provides helpers for emitting WASM byte code from an AST.
+- [`repr`](src/repr.ts) generates human-readable text representations of an AST or ArrayBuffer.
+- [`lbtext`](src/lbtext.ts) generates [Linear Bytecode text](https://github.com/WebAssembly/design/blob/master/TextFormat.md) from AST instructions
 
 I found myself relying on a very complicated tool chain (source build of llvm, binaryen, etc) while all I was looking for was to get close to WebAssembly. The prime component of wasm-util is `ast` which provides a convenient way of building complete WASM modules, with full static type-checking if you're using TypeScript.
 
@@ -319,4 +319,28 @@ The `printCode` function takes a list of operations to print.
 ```ts
 function printCode(instructions :N[], writer :Writer)
 type Writer = (s :string)=>void
+```
+
+## Building and testing
+
+First-time setup:
+
+```txt
+$ git clone https://github.com/WebAssembly/spec.git wasm-spec
+$ cd wasm-spec/interpreter
+$ make test && make opt
+$ cd ../..
+$ yarn || npm
+```
+
+Building JavaScript from TypeScript source:
+
+```
+$ node_modules/.bin/tsc  // puts things in "build" directory
+```
+
+Running tests:
+
+```
+$ test/test.js
 ```
