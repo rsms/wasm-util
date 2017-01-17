@@ -301,3 +301,22 @@ interface SpecOptions {
 ```
 
 Have a look at [test/build_test.js](test/build_test.js) for an example where `specEval` is used to test the functionality of a module built with `ast`.
+
+
+## lbtext
+
+`lbtext` can be used to generate [Linear Bytecode text](https://github.com/WebAssembly/design/blob/master/TextFormat.md) from AST code. E.g.
+
+```wasm
+get_local 0
+i64.const 2
+i64.div_s
+end
+```
+
+The `printCode` function takes a list of operations to print.
+
+```ts
+function printCode(instructions :N[], writer :Writer)
+type Writer = (s :string)=>void
+```
