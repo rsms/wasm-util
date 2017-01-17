@@ -7,21 +7,13 @@
         "alwaysStrict": true,
         "forceConsistentCasingInFileNames": true,
         "lib": [
-            "dom",
-            "es6"
+            "dom", "es6"
         ],
         "noEmitOnError": true,
         "outDir": "build",
         "pretty": true
     },
-    "files": [
-        "src/ast.ts",
-        "src/emit.ts",
-        "src/repr.ts",
-        "src/lbtext.ts",
-        "src/eval.ts",
-        "src/utf8.ts",
-        "src/info.ts",
-        "src/basic-types.ts"
+    "include": [
+        "**/*.ts"
     ]
 }

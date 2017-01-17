@@ -1,3 +1,4 @@
+"use strict";
 const assert = require('assert')
 const v8 = require('v8')
 

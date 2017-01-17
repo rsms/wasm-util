@@ -1,5 +1,6 @@
 {
   "devDependencies": {
-    "source-map-support": "^0.4.8"
+    "source-map-support": "^0.4.8",
+    "typescript": "^2.1.5"
   }
 }

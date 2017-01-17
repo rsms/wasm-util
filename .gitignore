@@ -4,9 +4,7 @@
 *.map
 *.lock
 *.tmp
-out
-out.wasm
-out.wast
+build
 wasm-spec
 node_modules
 _local
