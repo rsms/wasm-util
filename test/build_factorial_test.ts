@@ -2,6 +2,7 @@ import { c, get, sect_id, CodeSection } from '../build/ast'
 import { BufferedEmitter } from '../build/emit'
 import { specEval } from '../build/eval'
 import { printCode } from '../build/lbtext'
+import { strRepr } from '../build/repr'
 
 
 declare function require(ref:string):any;
@@ -66,6 +67,10 @@ function Test() {
   // codegen
   const emitbuf = new BufferedEmitter(new ArrayBuffer(mod.z))
   mod.emit(emitbuf)
+
+  if (!isUnitTest) {
+    console.log(strRepr(mod))
+  }
 
   // eval with spec interpreter
   return specEval(emitbuf.buffer, {
