@@ -1,3 +1,5 @@
+import {reprBuffer} from './repr'
+
 declare function require(ref:string):any;
 
 declare interface Buffer {
@@ -43,13 +45,12 @@ export function specEval(buf :ArrayBuffer, options? :SpecOptions) :Promise<strin
     }
     const randname = Math.random().toString() + Date.now().toString(36)
     const tmpname = tmpdir + 'tmp-' + randname + '.wasm';
-    console.log('tmpname', tmpname)
 
     // create temporary file with WASM code
     let rmtmpExecuted = false
     const rmtmp = function() {
       if (!rmtmpExecuted) {
-        // require('fs').unlinkSync(tmpname)
+        require('fs').unlinkSync(tmpname)
         rmtmpExecuted = true
         process.removeListener('exit', rmtmp)
       }
@@ -117,7 +118,6 @@ function handleResult(
 
       if (options.logErrors) {
         console.error(e.message)
-        const {reprBuffer} = require('../build/repr.js')
         const limit = byteRange[1] ? byteRange[1] + 2 : 500
         reprBuffer(buf, s => { (process as any).stderr.write(s) }, limit, byteRange)
       }
