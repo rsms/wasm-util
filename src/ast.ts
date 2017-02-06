@@ -14,13 +14,10 @@ export type int64   = number
 export type float32 = number
 export type float64 = number
 
-declare function require(ref:string):any;
-type AssertFunc = (cond:any, msg?:any)=>void;
-const _assert :AssertFunc = require('assert')
-function assert(cond: any, msg? :any) :boolean {
-  _assert(!!cond, msg)
-  return true // e.g. value = assert(value < 10) && value
-}
+const DEBUG = false
+const assert = DEBUG ? function(cond :any, msg? :any) {
+  if (!cond) { throw new Error('assertion failure'); }
+} : function(){}
 
 //——————————————————————————————————————————————————————————————————————————————
 // Basic node types
@@ -562,8 +559,8 @@ function varuint1(v :any) {
 }
 
 function varuint7(v :uint7) {
-  return varUint7Cache[v] ||
-         new u8_atom<uint7>(T.varuint7, assert(v >= 0 && v <= 128) && v) as VarUint7
+  assert(v >= 0 && v <= 128)
+  return varUint7Cache[v] || new u8_atom<uint7>(T.varuint7, v) as VarUint7
 }
 
 function varuint32(value :uint32) {
@@ -890,16 +887,17 @@ const version = uint32(0xd)
 const end = new instr_atom(0x0b, Void) as any as Op<Void>
 const elseOp = new instr_atom(0x05, Void) as any as Op<Void>
 
-const if_ = <R extends AnyResult>(r :R, cond :Op<I32>, then_ :AnyOp[], else_? :AnyOp[]) =>
-  assert(r === then_[then_.length-1].r) &&
-  assert(!else_ || else_.length == 0 || r === else_[else_.length-1].r) &&
-  new instr_pre_imm_post(0x04, r,
+function if_<R extends AnyResult>(r :R, cond :Op<I32>, then_ :AnyOp[], else_? :AnyOp[]) {
+  assert(r === then_[then_.length-1].r)
+  assert(!else_ || else_.length == 0 || r === else_[else_.length-1].r)
+  return new instr_pre_imm_post(0x04, r,
     [cond], // pre
     [r],    // imm
     // post:
     else_ ? [...then_, elseOp, ...else_, end] :
             [...then_, end]
   ) as any as Op<R>
+}
 
 const return_ = <R extends Result>(value :Op<R>) =>
   new instr_pre1(0x0f, value.r, value) as any as Op<R>
@@ -1027,9 +1025,10 @@ export const c = {
                  : [Func, paramLen, ...paramTypes, varuint1_0]) as any as FuncType
   },
 
-  table_type: (type :ElemType, limits :ResizableLimits) =>
-    assert(type.v == AnyFunc.v) && // WASM MVP limitation
-    new cell<N>(T.table_type, [type, limits]) as any as TableType,
+  table_type(type :ElemType, limits :ResizableLimits) {
+    assert(type.v == AnyFunc.v) // WASM MVP limitation
+    return new cell<N>(T.table_type, [type, limits]) as any as TableType
+  },
 
   global_type: (contentType :ValueType, mutable? :boolean) =>
     new cell<N>(T.global_type, [
@@ -1071,23 +1070,27 @@ export const c = {
   nop:         new instr_atom(0x01, Void) as any as Op<Void>,
 
   // begin a block which can also form CF loops
-  block: <R extends AnyResult>(r :R, body :AnyOp[]) =>
-    assert(r === body[body.length-1].r) &&
-    new instr_imm1_post(0x02, r, r as N, [...body, end]) as any as Op<R>,
+  block<R extends AnyResult>(r :R, body :AnyOp[]) {
+    assert(r === body[body.length-1].r)
+    return new instr_imm1_post(0x02, r, r as N, [...body, end]) as any as Op<R>
+  },
 
-  void_block: (body :AnyOp[]) =>
-    assert(body.length == 0 || Void === body[body.length-1].r) &&
-    new instr_imm1_post(0x02, Void, EmptyBlock, [...body, end]) as any as Op<Void>,
+  void_block(body :AnyOp[]) {
+    assert(body.length == 0 || Void === body[body.length-1].r)
+    return new instr_imm1_post(0x02, Void, EmptyBlock, [...body, end]) as any as Op<Void>
+  },
 
 
   // begin a block which can also form CF loops
-  loop: <R extends AnyResult>(r :R, body :AnyOp[]) =>
-    assert(r === body[body.length-1].r) &&
-    new instr_imm1_post(0x03, r, r as N, [...body, end]) as any as Op<R>,
+  loop<R extends AnyResult>(r :R, body :AnyOp[]) {
+    assert(r === body[body.length-1].r)
+    return new instr_imm1_post(0x03, r, r as N, [...body, end]) as any as Op<R>
+  },
 
-  void_loop: (body :AnyOp[]) =>
-    assert(body.length == 0 || Void === body[body.length-1].r) &&
-    new instr_imm1_post(0x03, Void, EmptyBlock, [...body, end]) as any as Op<Void>,
+  void_loop(body :AnyOp[]) {
+    assert(body.length == 0 || Void === body[body.length-1].r)
+    return new instr_imm1_post(0x03, Void, EmptyBlock, [...body, end]) as any as Op<Void>
+  },
 
   if: if_, if_,
   end: end,
@@ -1120,11 +1123,13 @@ export const c = {
   return_void: new instr_atom(0x0f, Void) as Op<Void>,
 
   // Calling
-  call: <R extends Result>(r :R, funcIndex: VarUint32, args :AnyOp[]) =>
-    new instr_pre_imm(0x10, r, args, [funcIndex]) as any as Op<R>,
+  call<R extends Result>(r :R, funcIndex: VarUint32, args :AnyOp[]) {
+    return new instr_pre_imm(0x10, r, args, [funcIndex]) as any as Op<R>
+  },
 
-  call_indirect: <R extends Result>(r :R, funcIndex: VarUint32, args :AnyOp[]) =>
-    new instr_pre_imm(0x11, r, args, [funcIndex, varuint1_0]) as any as Op<R>,
+  call_indirect<R extends Result>(r :R, funcIndex: VarUint32, args :AnyOp[]) {
+    return new instr_pre_imm(0x11, r, args, [funcIndex, varuint1_0]) as any as Op<R>
+  },
 
   // drop discards the value of its operand
   // R should be the value on the stack "under" the operand. E.g. with a stack:
@@ -1135,29 +1140,36 @@ export const c = {
   //   F64  top
   //   F32  bottom
   // i.e. R=F64
-  drop: <R extends AnyResult>(r :R, n :Op<Result>) =>
-    new instr_pre1(0x1a, r, n) as any as Op<R>,
+  drop<R extends AnyResult>(r :R, n :Op<Result>) {
+    return new instr_pre1(0x1a, r, n) as any as Op<R>
+  },
 
   // select one of two values based on condition
-  select: <R extends Result>(cond :Op<I32>, trueRes :Op<R>, falseRes :Op<R>) =>
-    assert(trueRes.r === falseRes.r) &&
-    new instr_pre(0x1b, trueRes.r, [trueRes, falseRes, cond]) as any as Op<R>,
+  select<R extends Result>(cond :Op<I32>, trueRes :Op<R>, falseRes :Op<R>) {
+    assert(trueRes.r === falseRes.r)
+    return new instr_pre(0x1b, trueRes.r, [trueRes, falseRes, cond]) as any as Op<R>
+  },
 
   // Variable access
-  get_local: <R extends Result>(r :R, localIndex :uint32) =>
-    new instr_imm1(0x20, r, varuint32(localIndex)) as any as Op<R>,
+  get_local<R extends Result>(r :R, localIndex :uint32) {
+    return new instr_imm1(0x20, r, varuint32(localIndex)) as any as Op<R>
+  },
 
-  set_local: (localIndex :uint32, expr :Op<Result>) =>
-    new instr_pre_imm(0x21, Void, [expr], [varuint32(localIndex)]) as any as Op<Void>,
+  set_local(localIndex :uint32, expr :Op<Result>) {
+    return new instr_pre_imm(0x21, Void, [expr], [varuint32(localIndex)]) as any as Op<Void>
+  },
 
-  tee_local: <R extends Result>(localIndex :uint32, expr :Op<R>) =>
-    new instr_pre_imm(0x22, expr.r, [expr], [varuint32(localIndex)]) as any as Op<R>,
+  tee_local<R extends Result>(localIndex :uint32, expr :Op<R>) {
+    return new instr_pre_imm(0x22, expr.r, [expr], [varuint32(localIndex)]) as any as Op<R>
+  },
 
-  get_global: <R extends Result>(r :R, globalIndex :uint32) =>
-    new instr_imm1(0x23, r, varuint32(globalIndex)) as any as Op<R>,
+  get_global<R extends Result>(r :R, globalIndex :uint32) {
+    return new instr_imm1(0x23, r, varuint32(globalIndex)) as any as Op<R>
+  },
 
-  set_global: (globalIndex :uint32, expr :Op<Result>) =>
-    new instr_pre_imm(0x24, Void, [expr], [varuint32(globalIndex)]) as any as Op<Void>,
+  set_global(globalIndex :uint32, expr :Op<Result>) {
+    return new instr_pre_imm(0x24, Void, [expr], [varuint32(globalIndex)]) as any as Op<Void>
+  },
 
   // Memory
   current_memory() { // query the size of memory (number of pages)
@@ -1166,9 +1178,10 @@ export const c = {
 
   // Grow the size of memory by `delta` memory pages.
   // Returns the previous memory size in units of pages or -1 on failure.
-  grow_memory: (delta :Op<Int>) =>
-    assert(delta.v >= 0) &&
-    new instr_pre_imm(0x40, c.i32, [delta], [varuint1_0]) as any as Op<Int>,
+  grow_memory(delta :Op<Int>) {
+    assert(delta.v >= 0)
+    return new instr_pre_imm(0x40, c.i32, [delta], [varuint1_0]) as any as Op<Int>
+  },
 
   // MemImm: Alignment          Offset
   align8:  [ varUint32Cache[0], varUint32Cache[0] ] as [VarUint32,Int],
