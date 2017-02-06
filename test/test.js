@@ -3,7 +3,6 @@
 const assert = require('assert')
 const vm = require('vm')
 const fs = require('fs')
-const child_proc = require('child_process')
 const { basename, dirname, extname } = require('path')
 
 let logDebug = function(){};
@@ -54,10 +53,42 @@ function style(streamno, style, what) {
   return `\x1b[${v[0]}m${what}\x1b[${v[1]}m`;
 }
 
-function runJSTestInSandbox(filename, name, sandbox) { // :Promise<void>
+
+function readfile(filename) {
+  return new Promise((resolve, reject) => {
+    fs.readFile(filename, {encoding:'utf8'}, (e, s) => {
+      if (e) { reject(e) } else { resolve(s) }
+    })
+  })
+}
+
+function writefile(filename, data) {
+  return new Promise((resolve, reject) => {
+    let triedmkdir = false
+    function tryw() {
+      fs.writeFile(filename, data, e => {
+        if (e) {
+          if (!triedmkdir && e.code == 'ENOENT') {
+            triedmkdir = true
+            fs.mkdir(dirname(filename), e2 => {
+              if (e2) { reject(e) } else { tryw() }
+            })
+          } else {
+            reject(e)
+          }
+        } else {
+          resolve()
+        }
+      })
+    }
+    tryw()
+  })
+}
+
+
+function runJSTestInSandbox(src, filename, name, sandbox) { // :Promise<void>
   logDebug('run', name);
   return new Promise((resolve, reject) => {
-    let src = fs.readFileSync(filename, {encoding:'utf8'});
     let expectError = null;
     let m = src.match(/\/\/\!error\s+(.+)\s*(?:\n|$)/);
     if (m) {
@@ -118,36 +149,65 @@ function runJSTestInSandbox(filename, name, sandbox) { // :Promise<void>
   });
 }
 
-function compileTypescript(infile) { // :Promise<void>
+function tsc(source, filename) { // :Promise<string>
   return new Promise((resolve, reject) => {
-    console.log('[ts] compiling', infile)
-    const tscfile = __dirname + '/../node_modules/typescript/lib/tsc.js'
-    child_proc.execFile(
-      process.execPath, [tscfile, '-p', __dirname],
-      {
-        cwd: __dirname,
-        encoding: 'utf8',
-        timeout: 30000,
-      },
-      (error, stdout, stderr) => {
-        if (stdout && stdout.length) {
-          console.log('[ts]', stdout)
-        }
-        if (error) {
-          if (stderr && stderr.length) {
-            console.error('[ts] error:', stderr)
-          }
-          return reject(error)
-        }
-        resolve()
+    const ts = require(__dirname + '/../node_modules/typescript/lib/typescript.js')
+    const compilerOptions = {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.Latest,
+      noImplicitAny: false,
+      inlineSourceMap: true,
+      alwaysStrict: true,
+      forceConsistentCasingInFileNames: true,
+      noEmitOnError: true,
+      lib: [
+        "dom",
+        "es6",
+      ],
+      pretty: true
+    }
+
+    let r = ts.transpileModule(source, {
+      compilerOptions,
+      fileName: filename,
+      reportDiagnostics: true,
+      moduleName: basename(filename, extname(filename)),
+    })
+
+    if (r.diagnostics && r.diagnostics.length) {
+      const log = {
+        [ts.DiagnosticCategory.Warning]: console.warn.bind(console,  '[tsc warning]'),
+        [ts.DiagnosticCategory.Error]:   console.error.bind(console, '[tsc error]'),
+        [ts.DiagnosticCategory.Message]: console.log.bind(console,   '[tsc]'),
       }
-    )
+      let firstError = null
+      for (let d of r.diagnostics) {
+        let prefix = ''
+        if (d.file) {
+          const pos = d.file.getLineAndCharacterOfPosition(d.start)
+          prefix += (d.file.fileName.endsWith(filename) ?
+                     basename(filename) : d.file.fileName) +
+                    ':' + pos.line + ':' + pos.character + ': '
+        }
+        prefix += 'TS'+d.code+':'
+        log[d.category](prefix, d.messageText)
+        if (!firstError && d.category == ts.DiagnosticCategory.Error) {
+          firstError = d.messageText
+        }
+      }
+      if (firstError) {
+        return reject(new Error(firstError))
+      }
+    }
+
+    resolve(r.outputText)
   })
 }
 
-function compileTypescriptIfNeeded(filename) { // :Promise<string>
+function getCompiledTypeScript(filename) { // :Promise<string>
   assert.equal(extname(filename), '.ts')
-  const outfilename = __dirname + '/build/' + basename(filename, '.ts') + '.js'
+
+  const outfilename = __dirname + '/build/' + basename(filename, extname(filename)) + '.js'
 
   // has input been modified since output was modified?
   const instat = fs.statSync(filename)
@@ -155,20 +215,28 @@ function compileTypescriptIfNeeded(filename) { // :Promise<string>
     const outstat = fs.statSync(outfilename)
     if (instat.mtime.getTime() <= outstat.mtime.getTime()) {
       // infile hasn't changed since outfile did
-      return Promise.resolve(outfilename)
+      return readfile(outfilename)
     }
   } catch (_) {}
 
-  return compileTypescript(filename).then(() => outfilename)
+  logDebug('tsc', filename, '->', outfilename)
+
+  return readfile(filename)
+         .then(source => tsc(source, filename))
+         .then(source => writefile(outfilename, source)
+                         .then(() => source))
 }
 
 function runJSTest(filename, name) {
-  const p = (extname(filename) == '.ts') ?
-    compileTypescriptIfNeeded(filename) :
-    Promise.resolve(filename)
-
-  return p.then(filename =>
-    runJSTestInSandbox(filename, name).then(() => {
+  return (
+    extname(filename) == '.ts'
+    ? getCompiledTypeScript(filename)
+    : readfile(filename)
+  ).catch(e => {
+    console.error(e.stack || String(e))
+    throw e
+  }).then(source =>
+    runJSTestInSandbox(source, filename, name).then(() => {
       process.stdout.write(
         `${style(0,'boldGreen','pass')} ${name}\n`
       )
@@ -258,12 +326,13 @@ timeoutTimer = setTimeout(function(){
 }, timeout);
 
 function checkflag(flag) {
-  let i = args.indexOf(flag);
+  let i = args.indexOf('-' + flag)
+  if (i == -1) { i = args.indexOf('--' + flag) }
   if (i != -1) {
-    args.splice(i,1);
-    return true;
+    args.splice(i,1)
+    return true
   }
-  return false;
+  return false
 }
 
 if (args.indexOf('-h') != -1 || args.indexOf('--help') != -1) {
@@ -277,10 +346,10 @@ if (args.indexOf('-h') != -1 || args.indexOf('--help') != -1) {
   process.exit(1);
 }
 
-if (checkflag('--non-interactive')) {
+if (checkflag('non-interactive')) {
   isInteractive = [false,false];
 }
-if (checkflag('--interactive')) {
+if (checkflag('interactive')) {
   isInteractive = [true,true];
 }
 if (isInteractive === null) {
@@ -288,11 +357,11 @@ if (isInteractive === null) {
   isInteractive = [process.stdout.isTTY,process.stderr.isTTY];
 }
 
-if (checkflag('--debug')) {
+if (checkflag('debug')) {
   debugMode = true;
   logDebug = function() {
     let args = Array.prototype.slice.call(arguments);
-    args.unshift(style(0,'boldMagenta','[debug]'));
+    args.unshift(style(0,'boldMagenta','D'));
     console.log.apply(console, args);
   };
 }
