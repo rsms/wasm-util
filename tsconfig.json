@@ -1,27 +1,22 @@
 {
-    "compilerOptions": {
-        "module": "commonjs",
-        "target": "es6",
-        "noImplicitAny": false,
-        "sourceMap": true,
-        "alwaysStrict": true,
-        "forceConsistentCasingInFileNames": true,
-        "lib": [
-            "dom",
-            "es6"
-        ],
-        "noEmitOnError": true,
-        "outDir": "build",
-        "pretty": true
-    },
-    "files": [
-        "src/ast.ts",
-        "src/emit.ts",
-        "src/repr.ts",
-        "src/lbtext.ts",
-        "src/eval.ts",
-        "src/utf8.ts",
-        "src/info.ts",
-        "src/basic-types.ts"
-    ]
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ESNEXT",
+    "noImplicitAny": false,
+    "sourceMap": true,
+    "alwaysStrict": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": [
+        "dom",
+        "es6"
+    ],
+    "noEmitOnError": true,
+    "outDir": "build",
+    "declaration": true,
+    "pretty": true,
+    "rootDir": "src"
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
 }
