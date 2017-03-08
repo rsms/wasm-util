@@ -883,7 +883,7 @@ class f64ops extends type_atom implements F64ops { readonly _F64: undefined;
 }
 
 const magic = uint32(0x6d736100)
-const version = uint32(0xd)
+const latestVersion = uint32(0x1)
 const end = new instr_atom(0x0b, Void) as any as Op<Void>
 const elseOp = new instr_atom(0x05, Void) as any as Op<Void>
 
@@ -945,9 +945,12 @@ export const c = {
   str_utf8: (text: string) =>
     str(utf8.encode(text)),
 
-  module(sections :Section[]) {
+  // If you are targeting a pre-MVP version, provide the desired version number (e.g. `0xd`).
+  // If not provided or falsy, the latest stable version is used.
+  module(sections :Section[], version? :uint32) {
+    const v = version ? uint32(version) : latestVersion
     return new cell<Section>(T.module,
-      [magic, version, ...sections] as Section[]) as any as Module
+      [magic, v, ...sections] as Section[]) as any as Module
   },
 
   custom_section: (name :Str, payload :N[]) =>

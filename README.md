@@ -345,3 +345,11 @@ Running tests:
 ```
 $ test/test.js
 ```
+
+Upgrading the spec interpreter:
+
+```bash
+git -C wasm-spec pull origin
+cd wasm-spec/interpreter
+make clean && make test && make opt
+```
